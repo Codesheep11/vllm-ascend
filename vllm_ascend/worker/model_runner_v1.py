@@ -4036,7 +4036,8 @@ class NPUModelRunner(GPUModelRunner):
         """Allocate an int8 raw cache tensor.
 
         When KV transfer is enabled, the returned tensor's data_ptr is aligned
-        to `alignment`. This keeps the original Mooncake/ADXL alignment behavior.
+        to `alignment`. Both aligned ends stay inside the owning allocation,
+        allowing page-granular direct-I/O registration without an extra KV buffer.
         """
         if numel <= 0:
             raise ValueError(f"Invalid cache tensor size: {numel}")
@@ -4045,7 +4046,7 @@ class NPUModelRunner(GPUModelRunner):
             return torch.zeros(numel, dtype=torch.int8, device=self.device)
 
         raw_tensor = torch.zeros(
-            numel + alignment,
+            self._align_up(numel, alignment) + alignment,
             dtype=torch.int8,
             device=self.device,
         )
