@@ -87,6 +87,7 @@ TILING_DATA_FIELD_DEF(uint32_t, s2Size)
 TILING_DATA_FIELD_DEF(uint32_t, sparseCount)
 TILING_DATA_FIELD_DEF(uint32_t, usedCoreNum)
 TILING_DATA_FIELD_DEF(uint32_t, blockSize)
+TILING_DATA_FIELD_DEF(uint32_t, scaleBlockSize)
 TILING_DATA_FIELD_DEF(uint32_t, maxBlockNumPerBatch)
 TILING_DATA_FIELD_DEF(uint32_t, sparseMode)
 END_TILING_DATA_DEF
@@ -134,6 +135,7 @@ public:
     // PageAttention
     bool pageAttentionFlag = false;
     int32_t blockSize = 0;
+    uint32_t scaleBlockSize = 0;
     uint32_t maxBlockNumPerBatch = 0;
     // Mask
     int32_t sparseMode = 0;

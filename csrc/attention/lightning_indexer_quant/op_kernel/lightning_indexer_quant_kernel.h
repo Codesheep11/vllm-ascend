@@ -155,6 +155,7 @@ __aicore__ inline void LIQPreload<LIQT>::InitTilingData(const LIQTilingData *__r
     constInfo.qSeqSize = tilingData->s1Size;
     constInfo.attenMaskFlag = (tilingData->sparseMode == 3);
     constInfo.kCacheBlockSize = tilingData->blockSize;
+    constInfo.kScaleBlockSize = tilingData->scaleBlockSize;
     constInfo.maxBlockNumPerBatch = tilingData->maxBlockNumPerBatch;
     constInfo.sparseCount = tilingData->sparseCount;
     constInfo.outputLayout = Q_LAYOUT_T;  // 输出和输入形状一致

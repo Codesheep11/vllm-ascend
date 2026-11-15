@@ -670,7 +670,12 @@ ge::graphStatus LIQInfoParser::CheckScaleShape()
     for (uint32_t i = 0; i < (kShapeDim - 1); i++) {
         uint32_t dimValueKeyScale = opParamInfo_.key_dequant_scale.shape->GetStorageShape().GetDim(i);
         uint32_t dimValueKey = opParamInfo_.key.shape->GetStorageShape().GetDim(i);
-        OPS_ERR_IF(dimValueKeyScale != dimValueKey,
+        // Paged scales may reserve a larger contiguous page for direct I/O.
+        // Only the token axis can be padded; heads and block count must match.
+        const bool paddedTokens = kLayout_ == DataLayout::PA_BSND && i == 1 &&
+                                  dimValueKeyScale >= dimValueKey &&
+                                  dimValueKeyScale % dimValueKey == 0;
+        OPS_ERR_IF(dimValueKeyScale != dimValueKey && !paddedTokens,
                    OPS_LOG_E(opName_, "key_dequant_scale's shape[%u] %u and key's shape[%u] %u is not same", i,
                              dimValueKeyScale, i, dimValueKey),
                    return ge::GRAPH_FAILED);
@@ -698,6 +703,8 @@ void LIQInfoParser::GenerateInfo(LIQTilingInfo &liqInfo)
     liqInfo.outputType = outputType_;
 
     liqInfo.blockSize = blockSize_;
+    liqInfo.scaleBlockSize = kLayout_ == DataLayout::PA_BSND
+        ? opParamInfo_.key_dequant_scale.shape->GetStorageShape().GetDim(1) : 0;
     liqInfo.maxBlockNumPerBatch = maxBlockNumPerBatch_;
 
     liqInfo.pageAttentionFlag = (kLayout_ == DataLayout::PA_BSND);
@@ -785,6 +792,7 @@ ge::graphStatus LightningIndexerQuantTiling::DoTiling(LIQTilingInfo *tilingInfo)
     tilingData_.set_sparseCount(tilingInfo->sparseCount);
     tilingData_.set_gSize(tilingInfo->gSize);
     tilingData_.set_blockSize(tilingInfo->blockSize);
+    tilingData_.set_scaleBlockSize(tilingInfo->scaleBlockSize);
     tilingData_.set_maxBlockNumPerBatch(tilingInfo->maxBlockNumPerBatch);
     tilingData_.set_sparseMode(tilingInfo->sparseMode);
     tilingData_.set_usedCoreNum(blockDim);

@@ -4087,7 +4087,9 @@ class NPUModelRunner(GPUModelRunner):
         scale_dtype_size = torch.empty((), dtype=scale_dtype).element_size()
 
         # Ensure the scale view starts at an address aligned for scale_dtype.
-        scale_offset = self._align_up(dsa_k_tensor_size, scale_dtype_size)
+        scale_offset = self._align_up(
+            dsa_k_tensor_size, alignment if self.vllm_config.kv_transfer_config is not None else scale_dtype_size
+        )
         total_raw_size = scale_offset + dsa_k_scale_tensor_size
 
         sparse_c8_raw_tensor = self._allocate_int8_cache_tensor(
@@ -4979,13 +4981,23 @@ class NPUModelRunner(GPUModelRunner):
                 # Remove this special case once the generic vLLM spec/backend
                 # path can describe the Ascend SFA indexer layout directly.
                 cache_sparse_li_c8 = self.ascend_config.is_sparse_li_c8_layer(layer_name)
+                scale_dim = 1 if cache_sparse_li_c8 else 0
+                transfer = self.vllm_config.kv_transfer_config
+                if cache_sparse_li_c8 and transfer is not None and transfer.get_from_extra_config(
+                    "lmcache.mp.mp_transfer_mode", ""
+                ) == "xds_worker":
+                    from vllm_ascend.worker.xds_layout import scale_padding_width
+
+                    if get_ascend_device_type() == AscendDeviceType.A5:
+                        raise ValueError("xDS padded indexer scales require the custom 910B/910C indexer kernel")
+                    scale_dim = scale_padding_width(self.block_size, self.c8_k_scale_cache_dtype)
                 kv_cache_spec[layer_name] = AscendSFAIndexerCacheSpec(
                     block_size=self.block_size,
                     num_kv_heads=1,
                     head_size=self.model_config.hf_text_config.index_head_dim,
                     dtype=self.c8_k_cache_dtype if cache_sparse_li_c8 else self.kv_cache_dtype,
                     cache_dtype_str=self.vllm_config.cache_config.cache_dtype,
-                    scale_dim=1 if cache_sparse_li_c8 else 0,
+                    scale_dim=scale_dim,
                     scale_dtype=self.c8_k_scale_cache_dtype if cache_sparse_li_c8 else torch.int8,
                     cache_sparse_li_c8=cache_sparse_li_c8,
                     sfa_dcp_replicated_indexer_size=self.sfa_dcp_replicated_indexer_size,

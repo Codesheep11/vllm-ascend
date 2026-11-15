@@ -104,6 +104,7 @@ private:
     int32_t s1BaseSize_ = 0;
     int32_t s2BaseSize_ = 0;
     int32_t kCacheBlockSize_ = 0;
+    uint32_t kScaleBlockSize_ = 0;
     int32_t maxBlockNumPerBatch_ = 0;
 
     // para for LD
@@ -135,7 +136,7 @@ __aicore__ inline void LIQVector<LIQT>::GetKeyScale(const LIQCommon::RunInfo &ru
             copyInParams.blockLen = firstPartLen * sizeof(half);
             int32_t blockId = blockTableGm.GetValue(blockTableBatchOffset + startBlockTableIdx);
             SetWaitFlag<HardEvent::S_MTE2>(HardEvent::S_MTE2);
-            AscendC::DataCopyPad(resUb, kScaleGm[blockId * kCacheBlockSize_ + startBlockTableOffset],
+            AscendC::DataCopyPad(resUb, kScaleGm[blockId * kScaleBlockSize_ + startBlockTableOffset],
                                  copyInParams, padParams);
             startBlockTableIdx++;
             getLen = getLen - firstPartLen;
@@ -149,7 +150,7 @@ __aicore__ inline void LIQVector<LIQT>::GetKeyScale(const LIQCommon::RunInfo &ru
             }
             int32_t blockId = blockTableGm.GetValue(blockTableBatchOffset + startBlockTableIdx + i);
             SetWaitFlag<HardEvent::S_MTE2>(HardEvent::S_MTE2);
-            AscendC::DataCopyPad(resUb[resUbBaseOffset + i * kCacheBlockSize_], kScaleGm[blockId * kCacheBlockSize_],
+            AscendC::DataCopyPad(resUb[resUbBaseOffset + i * kCacheBlockSize_], kScaleGm[blockId * kScaleBlockSize_],
                                  copyInParams, padParams);
         }
     } else {
@@ -221,6 +222,7 @@ __aicore__ inline void LIQVector<LIQT>::InitParams(const struct LIQCommon::Const
     s1BaseSize_ = constInfo.s1BaseSize;  // 4
     s2BaseSize_ = constInfo.s2BaseSize;  // 2048
     kCacheBlockSize_ = constInfo.kCacheBlockSize;
+    kScaleBlockSize_ = constInfo.kScaleBlockSize;
     maxBlockNumPerBatch_ = constInfo.maxBlockNumPerBatch;
     blockId_ = GetBlockIdx();
 }

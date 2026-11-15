@@ -2002,7 +2002,16 @@ class AscendSFAImpl(MLAAttentionImpl):
             if self.enable_sparse_li_c8:
                 assert len(kv_cache) == (3 if self.enable_sparse_sfa_c8 else 4)
                 if k_li_scale is not None:
-                    if use_li_c8_reshape_optim:
+                    scale_cache = kv_cache[dsa_k_scale_cache_idx]
+                    if scale_cache.shape[-1] > 1:
+                        from vllm_ascend.worker.xds_layout import scale_slot_mapping
+
+                        torch_npu.npu_scatter_nd_update_(
+                            scale_cache.view(-1, 1),
+                            scale_slot_mapping(scale_cache, slot_mapping).view(-1, 1),
+                            k_li_scale.view(-1, 1),
+                        )
+                    elif use_li_c8_reshape_optim:
                         torch.ops._C_ascend.store_kv_block(
                             k_li_scale,
                             kv_cache[dsa_k_scale_cache_idx],

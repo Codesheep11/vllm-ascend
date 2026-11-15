@@ -97,6 +97,7 @@ struct ConstInfo {
     uint64_t sparseCount;              // topK选取大小
     uint64_t kSeqSize = 0ULL;          // kv最大S长度
     uint64_t qSeqSize = 1ULL;          // q最大S长度
+    uint32_t kScaleBlockSize = 0;
     uint32_t kCacheBlockSize = 0;      // PA场景的block size
     uint32_t maxBlockNumPerBatch = 0;  // PA场景的最大单batch block number
     LI_LAYOUT outputLayout;            // 输出的格式
